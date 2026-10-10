@@ -1,0 +1,8 @@
+# Installed automatically on first run if missing (pip install -r requirements.txt to do it manually)
+pillow
+flatbuffers
+zstandard
+# numpy: needed for items 19-21 (backgrounds, loading screen, parts); speeds up atlas packing everywhere
+numpy
+# texture2ddecoder: only for reading ASTC-compressed textures (installed on demand)
+texture2ddecoder

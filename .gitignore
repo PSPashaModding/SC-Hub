@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+settings.json
+input/
+output/
+*.sc
+!examples/**/*.sc
