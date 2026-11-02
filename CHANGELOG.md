@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0
+- New item 22: combine two exports into one ExportName. Pick two exports, choose which goes on top, the name of the result (optionally keep the old top name too), and optionally offset/scale the top layer. Both originals stay as nested objects of a new clip; the result is verified (other exports look the same, layer order is right).
+
+## 1.6.0
+- Architecture: the single 13k-line file is split into the `schub/` package (format, textures, document model, atlas, operations, creation, i18n, ui, flows). Logic modules no longer print or ask anything: they report through `notify()`, all questions live in `flows.py` on top of `ui.py`. Behaviour is unchanged (checked on the same inputs: identical output files).
+
+## 1.5.1
+- Item 9 (rebuild atlases): one question with recommended settings instead of six; the rest moved behind "advanced".
+- Item 9 and clean-up: new outline packing (skyline over shape masks) — fragments are placed by their real outline, not the bounding rectangle; the denser of the two layouts is used (e.g. 5.2 MP → 3.4 MP on a sample background).
+
 ## 1.5.0
 - English and Russian interface (menu item `L`, `--lang en|ru`, `SCHUB_LANG`); the choice is saved to `settings.json`.
 - New item 20: loading screen — split `loading.sc` into PNG parts + template, rebuild with your own background, game logo and SUPERCELL intro logo (including a smooth diagonal SUPERCELL → your logo transition).

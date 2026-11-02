@@ -2,11 +2,11 @@
 
 **English** | [Русский](README.ru.md)
 
-A single-file console toolbox for **Supercell `.sc` assets** (SC1 and SC2): convert PNG/GIF into `.sc`, inspect and edit
+A console toolbox for **Supercell `.sc` assets** (SC1 and SC2): convert PNG/GIF into `.sc`, inspect and edit
 existing files, rebuild atlases, merge and clean files, build animated menu backgrounds and custom loading screens.
 It is made for client-side modding (for example Brawl Stars / Null's Brawl style mods).
 
-- One file: `sc_hub.py`. No installation besides Python and a few pip packages (installed automatically).
+- No installation besides Python and a few pip packages (installed automatically): run `sc_hub.py`, the code lives in the small `schub/` package next to it.
 - Menu-driven: pick a number, answer questions, **press Enter to accept the default in `[brackets]`**.
 - Interface in **English and Russian** (switch with `L` in the menu, `--lang en|ru`, or `SCHUB_LANG`).
 - Windows / Linux / macOS.
@@ -61,6 +61,7 @@ Every file question also accepts a full path, and `?` opens a file picker window
 | 19 | Create menu background | gradient + drifting symbols + top layer |
 | 20 | Loading screen | split `loading.sc` into parts and rebuild with your images |
 | 21 | Parts .sc ⇄ .sc | split any `.sc` into PNG parts and rebuild after editing |
+| 22 | Combine two exports | two pins in one ExportName with a chosen layer order |
 | L | Language | switch English / Russian |
 
 ## Detailed usage
@@ -103,6 +104,9 @@ font size and frame. Texts that live in clip names / localization keys are handl
 ### 9. Rebuild atlases
 Repacks every shape fragment from scratch into atlases up to 4096 px on a side: maximum atlas size, padding, 90° rotation
 for density, dropping pixels outside the shape outlines, dropping objects not reachable from any ExportName.
+
+By default you only confirm one question (**use recommended settings**: 4096 px, padding 2, auto mode, outline packing, cleanup on). Answer `n` to get all options.
+Outline packing places fragments by their real shape outline instead of the bounding rectangle, so diagonal shapes interlock; it needs numpy and is only kept when it gives a smaller result than the rectangle layout.
 
 ### 10. Delete exports
 Deletes ExportNames together with the clips and shapes used only by them, optionally rebuilding atlases so their pixels vanish too.
@@ -162,6 +166,10 @@ The same idea for **any** `.sc`: mode 1 splits all single-rectangle shapes (mini
 PNGs in `output/sc_parts/` with `template.sc` and `parts.json`; mode 2 rebuilds after you edit PNGs (ask how to fit images
 whose size changed). Multi-piece shapes and animated-by-frame parts stay as in the template. The output is always SC2.
 
+### 22. Combine two exports
+Puts two exports into **one** ExportName, stacked on top of each other (for example two pins). Steps: pick the first and the second export (number or name), choose which one is on top, type the name of the new export (default: the bottom one's name; the other name is removed unless you answer `y` to keep it as a separate export), optionally move/scale the top layer (X/Y in px, scale), choose the output file.
+A new clip is created whose children are the two originals in that order (later = drawn on top); it has as many frames as the longer of the two, so both animations keep playing. The originals stay inside the file as nested objects. Before saving, the hub checks that all other exports look exactly the same and that the layers are in the right order. SC1 files are converted to SC2.
+
 ## Tips and limitations
 - Keep originals: edit copies.
 - SC1 files are read and converted; deep edits (items 20/21 etc.) write SC2.
@@ -169,9 +177,29 @@ whose size changed). Multi-piece shapes and animated-by-frame parts stay as in t
 - Reports/dumps written to files (`.txt`, `.csv`) are always in Russian; the console follows the chosen language.
 - English UI strings are machine-assisted translations; corrections are welcome.
 
+## Architecture
+```
+sc_hub.py          launcher (calls schub.flows.main)
+schub/
+  sc_format.py     format layer: SC1/SC2 containers, flatbuffers, readers/builders, notify()
+  textures.py      pixels: ASTC encoder/decoder, KTX, .sctx/.zktx, linked texture packages
+  sc_doc.py        document model: .sc <-> data.json/msgpack + PNG, SC1 -> SC2
+  atlas.py         atlas rebuild: rectangle and outline packing, UV remap
+  sc_ops.py        operations on existing files: rename, resize, FPS, texts, merge, delete, optimize, diagnostics
+  sc_create.py     creating files from images: PNG/GIF, menu backgrounds, loading screens, parts
+  i18n.py          English translation table and tr()
+  ui.py            terminal layer: colours, ask(), file dialog, paths, language settings
+  flows.py         dialogs: one function per menu item asks the questions and calls the logic; menu and main()
+```
+Rules (they keep the code easy to test and reuse):
+- **Logic modules** (`sc_format`, `textures`, `sc_doc`, `atlas`, `sc_ops`, `sc_create`) only work with files and data. They never `print`, never `input`, never import `ui`/`flows`/`i18n`, and know nothing about colours or menus. They raise `UserError` for expected problems and report progress through `notify(text)`; lines starting with `⚠` are warnings, with `✔` success.
+- **`ui.py`** is the only place that talks to the terminal; it subscribes to `notify` and prints/translates the messages.
+- **`flows.py`** asks the user (via `ui`) and calls the logic; it contains no file-format code.
+- Imports go one way: `flows → ui → i18n` and `flows → sc_create/sc_ops → atlas → sc_doc → textures → sc_format`.
+
 ## Contributing
-Issues and pull requests are welcome. The whole tool is `sc_hub.py`; UI strings are written in Russian in the code and the
-English table `I18N_EN` maps each Russian fragment to English (add a pair there when you add a message).
+Issues and pull requests are welcome. See Architecture above. UI strings are written in Russian in the code and the
+English table `I18N_EN` (in `schub/i18n.py`) maps each Russian fragment to English (add a pair there when you add a message).
 
 ## License
 MIT — see [LICENSE](LICENSE).
